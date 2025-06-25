@@ -51,19 +51,14 @@ async def analyze_emotion(file: UploadFile = File(...)):
 
         outputs = session.run(None, {"data": img_np})
 
-        # طباعة مؤقتة للّوج على Railway
         print("Model outputs:", outputs)
 
-        # تحقق إن فيه ناتج فعلاً
         if not outputs or outputs[0].size == 0:
-        raise HTTPException(status_code=500, detail="Model returned empty output.")
+            raise HTTPException(status_code=500, detail="Model returned empty output.")
 
-pred = int(np.argmax(outputs[0]))
-emotion = emotion_labels[pred]
-return JSONResponse(content={"emotion": emotion})
-
-        
+        pred = int(np.argmax(outputs[0]))
         emotion = emotion_labels[pred]
         return JSONResponse(content={"emotion": emotion})
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Model inference failed: {str(e)}")
