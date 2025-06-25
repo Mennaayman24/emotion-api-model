@@ -50,7 +50,19 @@ async def analyze_emotion(file: UploadFile = File(...)):
         img_np = np.expand_dims(img_np, axis=0)              # Add batch dimension: [1, 3, 224, 224]
 
         outputs = session.run(None, {"data": img_np})
-        pred = np.argmax(outputs[0])
+
+        # طباعة مؤقتة للّوج على Railway
+        print("Model outputs:", outputs)
+
+        # تحقق إن فيه ناتج فعلاً
+        if not outputs or outputs[0].size == 0:
+        raise HTTPException(status_code=500, detail="Model returned empty output.")
+
+pred = int(np.argmax(outputs[0]))
+emotion = emotion_labels[pred]
+return JSONResponse(content={"emotion": emotion})
+
+        
         emotion = emotion_labels[pred]
         return JSONResponse(content={"emotion": emotion})
     except Exception as e:
