@@ -51,13 +51,13 @@ async def analyze_emotion(file: UploadFile = File(...)):
 
         outputs = session.run(None, {"data": img_np})
 
-        print("Model outputs:", outputs)
+        print(""Output shape:", outputs[0].shape)
 
         if not outputs or outputs[0].size == 0:
             raise HTTPException(status_code=500, detail="Model returned empty output.")
 
         pred = int(np.argmax(outputs[0]))
-        emotion = emotion_labels[pred]
+        emotion = emotion_labels[pred] if pred < len(emotion_labels) else "Unknown"
         return JSONResponse(content={"emotion": emotion})
 
     except Exception as e:
