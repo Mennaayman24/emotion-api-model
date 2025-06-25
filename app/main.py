@@ -10,9 +10,9 @@ import requests
 app = FastAPI()
 
 # Google Drive model info
-model_id = "10Cyx2vJ1xYofRb44NV0JVwewBKnbDAod"
+model_id = "1jGxqHGLDZ0lgBQ_9DW3pcumeuC-1XDdv"
 model_url = f"https://drive.google.com/uc?export=download&id={model_id}"
-model_path = "app/model/resnet34-v2-7.onnx"
+model_path = "app/model/emotion-ferplus.onnx"
 
 # Download model if not exists
 if not os.path.exists(model_path):
@@ -28,7 +28,9 @@ if not os.path.exists(model_path):
 
 # Load ONNX model
 session = ort.InferenceSession(model_path)
-emotion_labels = ['neutral', 'happiness', 'surprise', 'sadness', 'anger', 'disgust', 'fear', 'contempt']
+
+# FER+ Labels
+emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
 
 @app.get("/")
 def root():
@@ -38,24 +40,24 @@ def root():
 async def analyze_emotion(file: UploadFile = File(...)):
     try:
         contents = await file.read()
-        image = Image.open(io.BytesIO(contents)).convert("RGB").resize((224, 224))
+        image = Image.open(io.BytesIO(contents)).convert("L").resize((64, 64))
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid image file")
 
     try:
-        img_np = np.array(image).astype(np.float32) / 255.0
-        img_np = np.transpose(img_np, (2, 0, 1))
-        img_np = np.expand_dims(img_np, axis=0)
+        img_np = np.array(image).astype(np.float32)
+        img_np = np.expand_dims(img_np, axis=0)    # shape: (1, 64, 64)
+        img_np = np.expand_dims(img_np, axis=0)    # shape: (1, 1, 64, 64)
 
-        outputs = session.run(None, {"data": img_np})
+        # Get model input name dynamically
+        input_name = session.get_inputs()[0].name
 
-        print("Output shape:", outputs[0].shape)
-
-        if not outputs or outputs[0].size == 0:
-            raise HTTPException(status_code=500, detail="Model returned empty output.")
+        outputs = session.run(None, {input_name: img_np})
+        print("Model output shape:", outputs[0].shape)
 
         pred = int(np.argmax(outputs[0]))
         emotion = emotion_labels[pred] if pred < len(emotion_labels) else "Unknown"
+
         return JSONResponse(content={"emotion": emotion})
 
     except Exception as e:
