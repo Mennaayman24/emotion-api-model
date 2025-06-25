@@ -38,15 +38,17 @@ def root():
 async def analyze_emotion(file: UploadFile = File(...)):
     try:
         contents = await file.read()
-        image = Image.open(io.BytesIO(contents)).convert("L").resize((64, 64))
+        # Open and resize image to 224x224, and convert to RGB
+        image = Image.open(io.BytesIO(contents)).convert("RGB").resize((224, 224))
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    img_np = np.array(image).astype(np.float32)
-    img_np = np.expand_dims(img_np, axis=0)  # shape: (1, 64, 64)
-    img_np = np.expand_dims(img_np, axis=0)  # shape: (1, 1, 64, 64)
-
     try:
+        # Convert image to numpy array and prepare it for the model
+        img_np = np.array(image).astype(np.float32) / 255.0  # Normalize
+        img_np = np.transpose(img_np, (2, 0, 1))             # From HWC to CHW
+        img_np = np.expand_dims(img_np, axis=0)              # Add batch dimension: [1, 3, 224, 224]
+
         outputs = session.run(None, {"data": img_np})
         pred = np.argmax(outputs[0])
         emotion = emotion_labels[pred]
