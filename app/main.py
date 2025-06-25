@@ -47,7 +47,7 @@ async def analyze_emotion(file: UploadFile = File(...)):
     img_np = np.expand_dims(img_np, axis=0)  # shape: (1, 1, 64, 64)
 
     try:
-        outputs = session.run(None, {"Input3": img_np})
+        outputs = session.run(None, {"data": img_np})
         pred = np.argmax(outputs[0])
         emotion = emotion_labels[pred]
         return JSONResponse(content={"emotion": emotion})
